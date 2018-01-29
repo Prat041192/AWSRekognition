@@ -31,12 +31,12 @@ public class EcassignmentApplication {
 
 	@RequestMapping(method = RequestMethod.POST, value="/detectlabel")
 	public ResponseEntity<?> detectlable (@RequestBody DetectLabel detectLabel) {
-		String photo = detectLabel.getPhotoName();
+		List<String> photolist = detectLabel.getPhotoname();
 		String bucket = detectLabel.getBucketName();
 
 		AWSCredentials credentials;
 		try {
-			credentials = new ProfileCredentialsProvider("{your local aws profile name}").getCredentials();
+			credentials = new ProfileCredentialsProvider("PrateekNarula").getCredentials();
 		} catch (Exception e) {
 			throw new AmazonClientException("Cannot load the credentials from the credential profiles file. "
 					+ "Please make sure that your credentials file is at the correct "
@@ -48,25 +48,22 @@ public class EcassignmentApplication {
 				.withRegion(Regions.EU_WEST_1)
 				.withCredentials(new AWSStaticCredentialsProvider(credentials))
 				.build();
-
-		DetectLabelsRequest request = new DetectLabelsRequest()
-				.withImage(new Image()
-						.withS3Object(new S3Object()
-								.withName(photo).withBucket(bucket)))
-				.withMaxLabels(10)
-				.withMinConfidence(75F);
-
 		List<Label> labels = null;
-		try {
-			DetectLabelsResult result = rekognitionClient.detectLabels(request);
-			labels = result.getLabels();
+		for (String photo:photolist ) {
 
-			//System.out.println("Detected labels for " + photo);
-			//for (Label label : labels) {
-			//   System.out.println(label.getName() + ": " + label.getConfidence().toString());
-			//}
-		} catch (AmazonRekognitionException e) {
-			e.printStackTrace();
+
+			DetectLabelsRequest request = new DetectLabelsRequest()
+					.withImage(new Image()
+							.withS3Object(new S3Object()
+									.withName(photo).withBucket(bucket)))
+					.withMaxLabels(10)
+					.withMinConfidence(75F);
+			try {
+				DetectLabelsResult result = rekognitionClient.detectLabels(request);
+				labels = result.getLabels();
+			} catch (AmazonRekognitionException e) {
+				e.printStackTrace();
+			}
 		}
 		if(labels.size()>0) {
 			return ResponseEntity.status(HttpStatus.FOUND).body(labels);
